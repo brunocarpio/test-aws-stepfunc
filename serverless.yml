@@ -1,0 +1,84 @@
+service: async-api-with-eventbridge
+
+frameworkVersion: '3'
+
+plugins:
+  - serverless-step-functions
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: sa-east-1
+  # This global IAM role will be shared by both functions.
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action: "states:StartSyncExecution"
+          Resource:
+            Fn::Join:
+              - ':'
+              - - 'arn'
+                - 'aws'
+                - 'states'
+                - ${aws:region}
+                - ${aws:accountId}
+                - 'stateMachine'
+                - ${self:stepFunctions.stateMachines.computationStateMachine.name}
+
+functions:
+  # 1. This Lambda is invoked by API Gateway to start the workflow
+  startExecutionLambda:
+    handler: handler.startSyncExecution
+    events:
+      - http:
+          path: /calculate
+          method: post
+          cors: true
+    environment:
+      STATE_MACHINE_ARN:
+        Fn::Join:
+          - ':'
+          - - 'arn'
+            - 'aws'
+            - 'states'
+            - ${aws:region}
+            - ${aws:accountId}
+            - 'stateMachine'
+            - ${self:stepFunctions.stateMachines.computationStateMachine.name}
+
+  # 2. This Lambda is now directly invoked by the Step Function
+  computationLambda:
+    handler: handler.processComputation
+
+stepFunctions:
+  stateMachines:
+    computationStateMachine:
+      type: EXPRESS
+      name: ${self:service}-${sls:stage}-computation-machine
+      loggingConfig:
+        level: ${self:custom.stepFunctionsLogLevel.${self:provider.stage}}
+        includeExecutionData: true
+        destinations:
+          - Fn::GetAtt: [ComputeLogGroup, Arn]
+      definition:
+        Comment: "Workflow to directly invoke a lambda and return its result"
+        StartAt: InvokeComputationLambda
+        States:
+          InvokeComputationLambda:
+            Type: Task
+            # THE FIX: Changed from EventBridge callback to direct Lambda invocation
+            Resource: "arn:aws:states:::lambda:invoke"
+            Parameters:
+              # Specify the function to invoke and pass the original input as its payload
+              FunctionName:
+                Fn::GetAtt: [ComputationLambdaLambdaFunction, Arn]
+              "Payload.$": "$"
+            # THE FIX: No more ResultPath, the entire output of the lambda becomes the output of the state
+            End: true
+
+Resources:
+  ComputeLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/states/${self:service}-${sls:stage}-computation-machine-logGroup
