@@ -1,8 +1,9 @@
 {
-  "devDependencies": {
-    "serverless-step-functions": "^3.23.0"
-  },
-  "dependencies": {
-    "aws-sdk": "^2.1692.0"
-  }
+    "type": "module",
+    "devDependencies": {
+        "serverless-step-functions": "^3.23.0"
+    },
+    "dependencies": {
+        "aws-sdk": "^2.1692.0"
+    }
 }

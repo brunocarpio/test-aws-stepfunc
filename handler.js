@@ -1,6 +1,6 @@
-"use strict";
+//@ts-check
 
-const AWS = require("aws-sdk");
+import AWS from "aws-sdk";
 const sfn = new AWS.StepFunctions();
 
 /**
@@ -9,7 +9,7 @@ const sfn = new AWS.StepFunctions();
  * This function is correct and does NOT need changes. It starts the
  * synchronous Step Function and returns its result.
  */
-module.exports.startSyncExecution = async (event) => {
+export async function startSyncExecution(event) {
   console.log("Received API request:", event.body);
 
   const params = {
@@ -32,10 +32,15 @@ module.exports.startSyncExecution = async (event) => {
       };
     }
 
+    let output = result.output;
+    console.log(output);
+    let body = JSON.parse(output);
+    let payload = body.Payload;
+
     // The final result of the execution is in the output property
     return {
       statusCode: 200,
-      body: result.output,
+      body: JSON.stringify(payload),
     };
   } catch (error) {
     console.error("Error starting state machine execution:", error);
@@ -44,7 +49,7 @@ module.exports.startSyncExecution = async (event) => {
       body: JSON.stringify({ message: "Internal server error." }),
     };
   }
-};
+}
 
 /**
  * 2. Step Function -> This Lambda
@@ -52,7 +57,7 @@ module.exports.startSyncExecution = async (event) => {
  * THE FIX: This function is now much simpler. It no longer knows about
  * Step Functions or task tokens. It just performs a calculation and returns a result.
  */
-module.exports.processComputation = async (input) => {
+export async function processComputation(input) {
   console.log("Received task with input:", input);
 
   // --- Your Computation Logic Goes Here ---
@@ -65,4 +70,4 @@ module.exports.processComputation = async (input) => {
   // Simply return the result. The Step Function will capture this
   // and pass it on as the state's output.
   return computationResult;
-};
+}
