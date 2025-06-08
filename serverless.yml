@@ -1,4 +1,4 @@
-service: async-api-with-eventbridge
+service: async-api-with-state-machine
 
 frameworkVersion: '3'
 
@@ -7,7 +7,7 @@ plugins:
 
 provider:
   name: aws
-  runtime: nodejs18.x
+  runtime: nodejs20.x
   region: sa-east-1
   # This global IAM role will be shared by both functions.
   iam:
@@ -57,7 +57,7 @@ stepFunctions:
       type: EXPRESS
       name: ${self:service}-${sls:stage}-computation-machine
       loggingConfig:
-        level: ${self:custom.stepFunctionsLogLevel.${self:provider.stage}}
+        level: ALL
         includeExecutionData: true
         destinations:
           - Fn::GetAtt: [ComputeLogGroup, Arn]
@@ -77,8 +77,9 @@ stepFunctions:
             # THE FIX: No more ResultPath, the entire output of the lambda becomes the output of the state
             End: true
 
-Resources:
-  ComputeLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/states/${self:service}-${sls:stage}-computation-machine-logGroup
+resources:
+  Resources:
+    ComputeLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/states/${self:service}-${sls:stage}-computation-machine-logGroup
