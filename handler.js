@@ -32,15 +32,10 @@ export async function startSyncExecution(event) {
       };
     }
 
-    let output = result.output;
-    console.log(output);
-    let body = JSON.parse(output);
-    let payload = body.Payload;
-
     // The final result of the execution is in the output property
     return {
       statusCode: 200,
-      body: JSON.stringify(payload),
+      body: result.output,
     };
   } catch (error) {
     console.error("Error starting state machine execution:", error);

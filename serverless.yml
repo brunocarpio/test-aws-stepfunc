@@ -74,7 +74,7 @@ stepFunctions:
               FunctionName:
                 Fn::GetAtt: [ComputationLambdaLambdaFunction, Arn]
               "Payload.$": "$"
-            # THE FIX: No more ResultPath, the entire output of the lambda becomes the output of the state
+            OutputPath: "$.Payload"
             End: true
 
 resources:
